@@ -1,0 +1,20 @@
+{% for user in online_users %}
+<li class="flex items-center gap-3 p-2 hover:bg-gray-700 rounded transition-colors duration-150 animate-fadeInUp">
+    <div class="w-2 h-2 bg-green-500 rounded-full online-badge"></div>
+    <img src="{{ user.profile.avatar }}" 
+         class="w-8 h-8 rounded-full object-cover ring-2 ring-green-500 ring-opacity-50"
+         onerror="this.src='https://ui-avatars.com/api/?name={{ user.username }}&background=random'" />
+    <div class="flex-1 min-w-0">
+        <p class="text-white font-medium truncate">{{ user.profile.name|default:user.username }}</p>
+        <p class="text-gray-400 text-xs truncate">@{{ user.username }}</p>
+    </div>
+    {% if user == request.user %}
+    <span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">You</span>
+    {% endif %}
+</li>
+{% empty %}
+<li class="text-gray-400 text-center py-4 animate-fadeInUp">
+    <div class="text-3xl mb-2">👻</div>
+    <p>No users online</p>
+</li>
+{% endfor %}
