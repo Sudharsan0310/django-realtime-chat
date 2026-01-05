@@ -1,0 +1,9 @@
+{% for message in chat_messages reversed %}
+    {% include 'a_rtchat/partials/chat_message_p.html' %}
+{% empty %}
+<div class="text-gray-400 text-center py-10">
+    <div class="text-4xl mb-2">👋</div>
+    <p class="text-lg">No messages yet</p>
+    <p class="text-sm">Be the first to say hello!</p>
+</div>
+{% endfor %}
