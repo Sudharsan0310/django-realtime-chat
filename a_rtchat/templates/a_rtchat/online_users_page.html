@@ -1,0 +1,43 @@
+{% extends 'layouts/blank.html' %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto my-10 px-6">
+    <h1 class="text-4xl font-bold text-gray-800 mb-8">👥 Online Users</h1>
+    
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        {% if online_users %}
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for user in online_users %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <img src="{{ user.profile.avatar }}" 
+                                 class="w-12 h-12 rounded-full object-cover"
+                                 onerror="this.src='https://ui-avatars.com/api/?name={{ user.username }}&background=random'" />
+                            <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">{{ user.profile.name|default:user.username }}</h3>
+                            <p class="text-sm text-gray-600">@{{ user.username }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if user != request.user %}
+                    <a href="{% url 'start-dm' user.username %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        Message
+                    </a>
+                    {% else %}
+                    <span class="text-gray-500 text-sm">You</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-8">No users online right now</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

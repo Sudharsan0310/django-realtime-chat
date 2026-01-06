@@ -11,7 +11,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.chatroom_name = self.scope['url_route']['kwargs']['chatroom_name']
         self.chatroom_group_name = f'chat_{self.chatroom_name}'
         
-        print(f"[CONNECT] User '{self.user.username}' connecting to room '{self.chatroom_name}'")
+        print(f"[CONNECT] User '{self.user.username}' connecting to '{self.chatroom_name}'")
         
         # Join room group
         await self.channel_layer.group_add(
@@ -20,27 +20,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         
         await self.accept()
-        print(f"[SUCCESS] User '{self.user.username}' connected successfully")
+        print(f"[SUCCESS] User '{self.user.username}' connected!")
         
         # Add user to online list
         await self.remove_user_from_online()
         await self.add_user_to_online()
         
-        # Get online count and users
+        # Get online count
         online_count = await self.get_online_count()
-        online_users_html = await self.get_online_users_html()
+        print(f"[INFO] Online users: {online_count}")
         
-        print(f"[INFO] Total online users: {online_count}")
-        
-        # Broadcast to ALL users that someone joined
+        # Broadcast that user came online
         await self.channel_layer.group_send(
             self.chatroom_group_name,
             {
-                'type': 'user_status_update',
-                'online_count': online_count,
-                'online_users_html': online_users_html,
-                'action': 'joined',
+                'type': 'user_online_status',
+                'user_id': self.user.id,
                 'username': self.user.username,
+                'status': 'online',
             }
         )
 
@@ -51,21 +48,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Remove user from online list
         await self.remove_user_from_online()
         
-        # Get updated count and users
-        online_count = await self.get_online_count()
-        online_users_html = await self.get_online_users_html()
-        
-        print(f"[INFO] Online users after disconnect: {online_count}")
-        
-        # Broadcast to ALL remaining users that someone left
+        # Broadcast that user went offline
         await self.channel_layer.group_send(
             self.chatroom_group_name,
             {
-                'type': 'user_status_update',
-                'online_count': online_count,
-                'online_users_html': online_users_html,
-                'action': 'left',
+                'type': 'user_online_status',
+                'user_id': self.user.id,
                 'username': self.user.username,
+                'status': 'offline',
             }
         )
         
@@ -80,62 +70,68 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Called when message received from WebSocket"""
         print(f"[RECEIVE] Message from '{self.user.username}': {text_data}")
         
-        data = json.loads(text_data)
-        message_body = data.get('message', '').strip()
+        try:
+            data = json.loads(text_data)
+            message_body = data.get('message', '').strip()
+            
+            if not message_body:
+                print("[WARNING] Empty message")
+                return
+            
+            print(f"[PROCESSING] Message: {message_body}")
+            
+            # Save message to database
+            message = await self.save_message(message_body)
+            print(f"[DATABASE] Message saved with ID: {message.id}")
+            
+            # Render message HTML for this user
+            message_html = await self.render_message_for_user(message, self.user)
+            
+            # Broadcast to ALL users in group
+            await self.channel_layer.group_send(
+                self.chatroom_group_name,
+                {
+                    'type': 'chat_message',
+                    'message_html': message_html,
+                    'message_id': message.id,
+                    'username': self.user.username,
+                    'author_id': self.user.id,
+                }
+            )
+            print(f"[BROADCAST] Message sent to group!")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to process message: {e}")
+
+    async def chat_message(self, event):
+        """Handle chat_message events from channel layer"""
+        print(f"[HANDLER] Broadcasting to '{self.user.username}'")
         
-        if not message_body:
-            print("[WARNING] Empty message, ignoring")
-            return
-        
-        print(f"[PROCESSING] Message: {message_body}")
-        
-        # Save message
-        message = await self.save_message(message_body)
-        print(f"[DATABASE] Message saved with ID: {message.id}")
-        
-        # Render message
-        message_html = await self.render_message(message)
-        
-        # Broadcast to ALL users
-        await self.channel_layer.group_send(
-            self.chatroom_group_name,
-            {
+        try:
+            # Get message and re-render for this specific user
+            message = await self.get_message(event['message_id'])
+            message_html = await self.render_message_for_user(message, self.user)
+            
+            await self.send(text_data=json.dumps({
                 'type': 'chat_message',
                 'message_html': message_html,
-                'message_id': message.id,
-                'username': self.user.username,
-                'author_id': message.author.id,
-            }
-        )
-        print(f"[BROADCAST] Message sent to group")
-
-    # Handler methods
+                'message_id': event['message_id'],
+                'username': event['username'],
+            }))
+            print(f"[SUCCESS] Message sent to '{self.user.username}'")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to send message: {e}")
     
-    async def chat_message(self, event):
-        """Handle chat_message events"""
-        print(f"[HANDLER] Broadcasting message to '{self.user.username}'")
-        
-        # Re-render for this specific user (for correct alignment)
-        message = await self.get_message(event['message_id'])
-        message_html = await self.render_message_for_user(message, self.user)
-        
-        await self.send(text_data=json.dumps({
-            'type': 'chat_message',
-            'message_html': message_html,
-            'message_id': event['message_id'],
-            'username': event['username'],
-        }))
-    
-    async def user_status_update(self, event):
-        """Handle user status updates (join/leave)"""
-        print(f"[STATUS] Sending status update to '{self.user.username}'")
+    async def user_online_status(self, event):
+        """Handle user online/offline status changes"""
+        print(f"[STATUS] User {event['username']} is now {event['status']}")
         
         await self.send(text_data=json.dumps({
             'type': 'user_status',
-            'online_count': event['online_count'],
-            'online_users_html': event['online_users_html'],
-            'action': event['action'],
+            'user_id': event['user_id'],
             'username': event['username'],
+            'status': event['status'],
         }))
 
     # Database operations
@@ -147,8 +143,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.user not in chat_group.users_online.all():
             chat_group.users_online.add(self.user)
             print(f"[DATABASE] Added '{self.user.username}' to online list")
-        else:
-            print(f"[INFO] '{self.user.username}' already online")
     
     @database_sync_to_async
     def remove_user_from_online(self):
@@ -159,7 +153,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 chat_group.users_online.remove(self.user)
                 print(f"[DATABASE] Removed '{self.user.username}' from online list")
         except Exception as e:
-            print(f"[ERROR] Failed to remove user: {e}")
+            print(f"[ERROR] Remove user failed: {e}")
     
     @database_sync_to_async
     def get_online_count(self):
@@ -171,15 +165,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return count
     
     @database_sync_to_async
-    def get_online_users_html(self):
-        """Render online users list"""
-        chat_group = ChatGroup.objects.get(group_name=self.chatroom_name)
-        online_users = chat_group.users_online.all()
-        return render_to_string('a_rtchat/partials/online_users.html', {
-            'online_users': online_users,
-        })
-    
-    @database_sync_to_async
     def save_message(self, message_body):
         """Save message to database"""
         chat_group = ChatGroup.objects.get(group_name=self.chatroom_name)
@@ -188,6 +173,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             author=self.user,
             body=message_body
         )
+        print(f"[DATABASE] Message saved: ID={message.id}, Author={self.user.username}")
         return message
     
     @database_sync_to_async
@@ -196,16 +182,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return GroupMessage.objects.get(id=message_id)
     
     @database_sync_to_async
-    def render_message(self, message):
-        """Render message HTML"""
-        return render_to_string('a_rtchat/partials/chat_message_p.html', {
-            'message': message,
-            'user': message.author
-        })
-    
-    @database_sync_to_async
     def render_message_for_user(self, message, viewing_user):
-        """Render message for specific user"""
+        """Render message HTML for specific user"""
         return render_to_string('a_rtchat/partials/chat_message_p.html', {
             'message': message,
             'user': viewing_user
