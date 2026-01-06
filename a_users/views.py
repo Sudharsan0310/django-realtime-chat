@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from allauth.account.utils import send_email_confirmation
+from allauth.account.models import EmailAddress
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
@@ -62,11 +62,23 @@ def profile_emailchange(request):
             
             form.save() 
             
-            # Then Signal updates emailaddress and set verified to False
-            
-            # Then send confirmation email 
-            # send_email_confirmation() will be deprecated soon!
-            send_email_confirmation(request, request.user)
+            # Send confirmation email using new method
+            try:
+                email_address = EmailAddress.objects.get_for_user(request.user, email)
+                if email_address:
+                    email_address.send_confirmation(request)
+                    messages.success(request, 'Confirmation email sent!')
+            except EmailAddress.DoesNotExist:
+                # Create email address if it doesn't exist
+                email_address = EmailAddress.objects.add_email(
+                    request, 
+                    request.user, 
+                    email, 
+                    confirm=True
+                )
+                messages.success(request, 'Confirmation email sent!')
+            except Exception as e:
+                messages.warning(request, 'Email updated but confirmation email could not be sent.')
             
             return redirect('profile-settings')
         else:
@@ -98,7 +110,19 @@ def profile_usernamechange(request):
 
 @login_required
 def profile_emailverify(request):
-    send_email_confirmation(request, request.user)
+    # Send verification email using new method
+    try:
+        email_address = EmailAddress.objects.get_primary(request.user)
+        if email_address and not email_address.verified:
+            email_address.send_confirmation(request)
+            messages.success(request, 'Verification email sent!')
+        elif email_address and email_address.verified:
+            messages.info(request, 'Email is already verified.')
+        else:
+            messages.warning(request, 'No email address found.')
+    except Exception as e:
+        messages.error(request, 'Could not send verification email.')
+    
     return redirect('profile-settings')
 
 
