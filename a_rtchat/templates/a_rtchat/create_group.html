@@ -1,0 +1,86 @@
+{% extends 'layouts/blank.html' %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto my-10 px-6">
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Create New Group</h1>
+            <p class="text-gray-600">Start a group chat with your friends</p>
+        </div>
+        
+        <!-- Form -->
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Group Icon Preview -->
+            <div class="mb-6 text-center">
+                <div class="inline-block relative">
+                    <img id="icon-preview" 
+                         src="https://ui-avatars.com/api/?name=Group&size=150&background=4F46E5&color=fff" 
+                         class="w-32 h-32 rounded-full object-cover ring-4 ring-blue-500 mx-auto"
+                         alt="Group Icon">
+                    <label for="id_group_icon" class="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                        </svg>
+                    </label>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Click the icon to upload group picture</p>
+            </div>
+            
+            {{ form.group_icon }}
+            
+            <!-- Group Name -->
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2">
+                    Group Name <span class="text-red-500">*</span>
+                </label>
+                {{ form.groupchat_name }}
+                {% if form.groupchat_name.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.groupchat_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Description -->
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2">
+                    Description (Optional)
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.description.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition">
+                    Create Group
+                </button>
+                <a href="{% url 'home' %}" 
+                   class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-bold text-center hover:bg-gray-300 transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Preview group icon
+    document.getElementById('id_group_icon').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('icon-preview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+
+{% endblock %}

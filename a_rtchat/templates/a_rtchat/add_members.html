@@ -1,0 +1,104 @@
+{% extends 'layouts/blank.html' %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto my-10 px-6">
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <!-- Header -->
+        <div class="mb-6 flex items-center gap-4">
+            {% if group.group_icon %}
+                <img src="{{ group.group_icon.url }}" class="w-16 h-16 rounded-full object-cover ring-4 ring-blue-500">
+            {% else %}
+                <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold ring-4 ring-blue-500">
+                    {{ group.groupchat_name|first }}
+                </div>
+            {% endif %}
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Add Members</h1>
+                <p class="text-gray-600">to {{ group.groupchat_name }}</p>
+            </div>
+        </div>
+        
+        {% if available_users %}
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Search -->
+            <div class="mb-4">
+                <input type="text" 
+                       id="search-members" 
+                       placeholder="Search users..." 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <!-- Users List -->
+            <div class="mb-6 max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                {% for user in available_users %}
+                <label class="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition user-item">
+                    <input type="checkbox" 
+                           name="members" 
+                           value="{{ user.id }}" 
+                           class="w-5 h-5 text-blue-600 rounded">
+                    <img src="{{ user.profile.avatar }}" 
+                         class="w-10 h-10 rounded-full object-cover"
+                         onerror="this.src='https://ui-avatars.com/api/?name={{ user.username }}&background=random'">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-800">{{ user.profile.name|default:user.username }}</h3>
+                        <p class="text-sm text-gray-500">@{{ user.username }}</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+            
+            <!-- Selected Count -->
+            <div class="mb-4 text-center">
+                <span id="selected-count" class="text-gray-600 font-semibold">0 members selected</span>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition">
+                    Add Selected Members
+                </button>
+                <a href="{% url 'chatroom' group.group_name %}" 
+                   class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-bold text-center hover:bg-gray-300 transition">
+                    Skip
+                </a>
+            </div>
+        </form>
+        {% else %}
+        <div class="text-center py-8">
+            <p class="text-gray-500 mb-4">No more users to add</p>
+            <a href="{% url 'chatroom' group.group_name %}" 
+               class="bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition inline-block">
+                Go to Group Chat
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Search functionality
+    document.getElementById('search-members').addEventListener('input', function(e) {
+        const search = e.target.value.toLowerCase();
+        document.querySelectorAll('.user-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(search) ? 'flex' : 'none';
+        });
+    });
+    
+    // Count selected
+    const checkboxes = document.querySelectorAll('input[name="members"]');
+    const countDisplay = document.getElementById('selected-count');
+    
+    function updateCount() {
+        const count = document.querySelectorAll('input[name="members"]:checked').length;
+        countDisplay.textContent = `${count} member${count !== 1 ? 's' : ''} selected`;
+    }
+    
+    checkboxes.forEach(cb => cb.addEventListener('change', updateCount));
+</script>
+
+{% endblock %}
