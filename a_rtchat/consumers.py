@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.template.loader import render_to_string
-from .models import ChatGroup, GroupMessage
+from .models import ChatGroup, GroupMessage, UserOnlineStatus
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -21,6 +21,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
         print(f"[SUCCESS] User '{self.user.username}' connected!")
+        
+        # Update online status
+        await self.update_online_status(is_online=True)
         
         # Add user to online list
         await self.remove_user_from_online()
@@ -44,6 +47,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         """Called when WebSocket disconnects"""
         print(f"[DISCONNECT] User '{self.user.username}' disconnecting")
+        
+        # Update online status
+        await self.update_online_status(is_online=False)
         
         # Remove user from online list
         await self.remove_user_from_online()
@@ -79,6 +85,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
             
             print(f"[PROCESSING] Message: {message_body}")
+            
+            # Update last activity
+            await self.update_last_activity()
             
             # Save message to database
             message = await self.save_message(message_body)
@@ -135,6 +144,42 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     # Database operations
+    
+    @database_sync_to_async
+    def update_online_status(self, is_online):
+        """Update user's online status and current chatroom"""
+        from django.utils import timezone
+        
+        chat_group = ChatGroup.objects.get(group_name=self.chatroom_name)
+        
+        status, created = UserOnlineStatus.objects.get_or_create(
+            user=self.user,
+            defaults={
+                'is_online': is_online,
+                'current_chatroom': chat_group if is_online else None,
+                'last_activity': timezone.now()
+            }
+        )
+        
+        if not created:
+            status.is_online = is_online
+            status.current_chatroom = chat_group if is_online else None
+            status.last_activity = timezone.now()
+            status.save()
+        
+        print(f"[TRACKER] User '{self.user.username}' status: {'Online' if is_online else 'Offline'} in '{self.chatroom_name}'")
+    
+    @database_sync_to_async
+    def update_last_activity(self):
+        """Update user's last activity timestamp"""
+        from django.utils import timezone
+        
+        try:
+            status = UserOnlineStatus.objects.get(user=self.user)
+            status.last_activity = timezone.now()
+            status.save(update_fields=['last_activity'])
+        except UserOnlineStatus.DoesNotExist:
+            pass
     
     @database_sync_to_async
     def add_user_to_online(self):

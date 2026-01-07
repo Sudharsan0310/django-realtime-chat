@@ -35,5 +35,18 @@
             <li><a href="{% url 'account_signup' %}?next={% url 'profile-onboarding' %}">Signup</a></li>
             {% endif %}
         </ul>
+
+        
+        <a href="{% url 'online-tracker' %}" 
+            class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+            </svg>
+            <span>Online Tracker</span>
+            <span class="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+            <!-- Dynamic count via HTMX or JS -->
+            Live
+            </span>
+        </a>
     </nav>
 </header>

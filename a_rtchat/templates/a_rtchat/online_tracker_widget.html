@@ -1,0 +1,23 @@
+<div class="space-y-2">
+    {% for status in online_statuses %}
+    <div class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition">
+        <div class="relative">
+            <img src="{{ status.user.profile.avatar }}" 
+                 class="w-8 h-8 rounded-full object-cover"
+                 onerror="this.src='https://ui-avatars.com/api/?name={{ status.user.username }}&background=random'">
+            <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
+        </div>
+        
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 truncate">{{ status.user.username }}</p>
+            {% if status.current_chatroom %}
+            <p class="text-xs text-gray-500 truncate">{{ status.current_chatroom.groupchat_name|default:status.current_chatroom.group_name }}</p>
+            {% else %}
+            <p class="text-xs text-green-600">Online</p>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-sm text-gray-500 text-center py-4">No users online</p>
+    {% endfor %}
+</div>

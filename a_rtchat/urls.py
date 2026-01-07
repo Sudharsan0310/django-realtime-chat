@@ -16,4 +16,8 @@ urlpatterns = [
     path('group/<str:group_name>/add-members/', add_members, name='add-members'),
     path('group/<str:group_name>/settings/', group_settings, name='group-settings'),
     path('group/<str:group_name>/leave/', leave_group, name='leave-group'),
+    
+    # Online Tracker
+    path('online-tracker/', online_tracker, name='online-tracker'),
+    path('online-tracker/widget/', online_tracker_widget, name='online-tracker-widget'),
 ]

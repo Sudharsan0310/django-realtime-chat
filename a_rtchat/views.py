@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
-from .models import ChatGroup, GroupMessage
+from .models import ChatGroup, GroupMessage, UserOnlineStatus
 from .forms import ChatmessageCreateForm, GroupChatCreateForm, GroupChatEditForm
 import shortuuid
 
@@ -253,3 +253,40 @@ def leave_group(request, group_name):
     group.members.remove(request.user)
     messages.success(request, f"You left '{group.groupchat_name}'")
     return redirect('home')
+
+@login_required
+def online_tracker(request):
+    """Show all online users and their current chatrooms"""
+    # Get all online users
+    online_statuses = UserOnlineStatus.objects.filter(is_online=True).select_related('user', 'current_chatroom')
+    
+    # Get all users (for showing offline too)
+    all_statuses = UserOnlineStatus.objects.all().select_related('user', 'current_chatroom').order_by('-is_online', '-last_activity')
+    
+    # Group by chatroom
+    chatroom_users = {}
+    for status in online_statuses:
+        if status.current_chatroom:
+            room_name = status.current_chatroom.groupchat_name or status.current_chatroom.group_name
+            if room_name not in chatroom_users:
+                chatroom_users[room_name] = []
+            chatroom_users[room_name].append(status.user)
+    
+    context = {
+        'online_statuses': online_statuses,
+        'all_statuses': all_statuses,
+        'chatroom_users': chatroom_users,
+        'total_online': online_statuses.count(),
+    }
+    
+    return render(request, 'a_rtchat/online_tracker.html', context)
+
+
+@login_required
+def online_tracker_widget(request):
+    """HTMX widget showing online users"""
+    online_statuses = UserOnlineStatus.objects.filter(is_online=True).select_related('user', 'current_chatroom')[:10]
+    
+    return render(request, 'a_rtchat/partials/online_tracker_widget.html', {
+        'online_statuses': online_statuses,
+    })
