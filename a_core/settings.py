@@ -142,7 +142,7 @@ CHANNEL_LAYERS = {
 }
 
 # Django Allauth Settings
-SITE_ID = 1
+SITE_ID = 2
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 LOGIN_REDIRECT_URL = '/'
@@ -150,7 +150,7 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Project Title
-PROJECT_TITLE = 'Real-Time Chat'
+PROJECT_TITLE = 'Real-Time Chat App'
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
