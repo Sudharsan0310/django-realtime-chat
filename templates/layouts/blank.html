@@ -1,13 +1,109 @@
-{% extends 'base.html' %}
-
-{% block layout %}
-
-<content class="block w-full">
-
-    {% block content %} 
-    {% endblock %}
-
-</content>
-
-{% endblock %}
-
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    
+    <!-- Mobile optimization -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#3B82F6">
+    
+    <title>{% block title %}{{ PROJECT_TITLE }}{% endblock %}</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Custom Responsive CSS -->
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    
+    <style>
+        /* Quick mobile fixes */
+        @media (max-width: 768px) {
+            .max-w-6xl, .max-w-4xl, .max-w-2xl {
+                max-width: 100% !important;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            /* Fix chat input zoom on iOS */
+            input, textarea, select {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- JavaScript -->
+    {% block javascript %}{% endblock %}
+    
+    <!-- Mobile menu toggle script -->
+    <script>
+        // Toggle mobile sidebar
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.overlay');
+            if (sidebar) {
+                sidebar.classList.toggle('active');
+            }
+            if (overlay) {
+                overlay.classList.toggle('active');
+            }
+        }
+        
+        // Toggle members modal
+        function toggleMembersModal() {
+            const modal = document.querySelector('.members-modal');
+            const overlay = document.querySelector('.overlay');
+            if (modal) {
+                modal.classList.toggle('active');
+            }
+            if (overlay) {
+                overlay.classList.toggle('active');
+            }
+        }
+        
+        // Close modals on overlay click
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('overlay')) {
+                document.querySelectorAll('.modal, .sidebar, .members-modal, .overlay').forEach(el => {
+                    el.classList.remove('active');
+                });
+            }
+        });
+        
+        // Close modals on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal, .sidebar, .members-modal, .overlay').forEach(el => {
+                    el.classList.remove('active');
+                });
+            }
+        });
+        
+        // Prevent zoom on double tap (iOS)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
