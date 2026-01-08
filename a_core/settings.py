@@ -142,7 +142,7 @@ CHANNEL_LAYERS = {
 }
 
 # Django Allauth Settings
-SITE_ID = 2
+SITE_ID = 1
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 LOGIN_REDIRECT_URL = '/'
@@ -154,11 +154,13 @@ PROJECT_TITLE = 'Real-Time Chat App'
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.koyeb.app',
+    'https://*.onrender.com',
+    'https://realtime-chat-r818.onrender.com',
 ]
 
 # Security settings
 if not DEBUG:
+    # SECURE_SSL_REDIRECT = False  # ← Render handles SSL!
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True

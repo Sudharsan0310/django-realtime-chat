@@ -8,16 +8,31 @@ from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
 from .forms import *
 
-def profile_view(request, username=None):
-    if username:
-        profile = get_object_or_404(User, username=username).profile
-    else:
-        try:
-            profile = request.user.profile
-        except:
-            return redirect_to_login(request.get_full_path())
-    return render(request, 'a_users/profile.html', {'profile':profile})
-
+@login_required
+def profile_edit(request):
+    if request.method == 'POST':
+        # Get form data
+        name = request.POST.get('name')
+        bio = request.POST.get('bio')
+        profile_image = request.FILES.get('profile_image')
+        
+        # Update profile
+        profile = request.user.profile
+        if name:
+            profile.name = name
+        if bio:
+            profile.bio = bio
+        if profile_image:
+            profile.avatar = profile_image
+        
+        profile.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+        
+        # IMPORTANT: Redirect to profile view, NOT back to edit
+        return redirect('profile', username=request.user.username)
+    
+    return render(request, 'a_users/profile_edit.html')
 
 @login_required
 def profile_edit_view(request):

@@ -298,6 +298,7 @@
 
 <!-- Overlay for modals -->
 <div class="overlay fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleMembersModal()"></div>
+</div>
 
 {% endblock %}
 
@@ -317,47 +318,69 @@
     console.log('[INFO] User:', currentUser);
     console.log('[INFO] Is DM:', isDM);
     
-    const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + roomName + '/');
+    // Auto-detect WebSocket protocol (ws:// for local, wss:// for production)
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = wsProtocol + '//' + window.location.host + '/ws/chat/' + roomName + '/';
+    
+    console.log('[INFO] Connecting to:', wsUrl);
+    
+    const chatSocket = new WebSocket(wsUrl);
 
     chatSocket.onopen = function(e) {
-        console.log('[WebSocket] Connected successfully!');
+        console.log('[WebSocket] ✅ Connected successfully!');
     };
 
     chatSocket.onmessage = function(e) {
-        console.log('[WebSocket] Message received');
+        console.log('[WebSocket] 📨 Message received:', e.data);
         
         try {
             const data = JSON.parse(e.data);
+            console.log('[WebSocket] Parsed data:', data);
             
             if (data.type === 'chat_message') {
+                console.log('[WebSocket] Adding message to chat');
+                
                 const chatMessages = document.getElementById('chat_messages');
                 if (chatMessages) {
                     chatMessages.insertAdjacentHTML('beforeend', data.message_html);
                     
+                    // Scroll to bottom
                     const container = document.getElementById('chat_container');
                     if (container) {
                         container.scrollTop = container.scrollHeight;
                     }
+                    
+                    console.log('[WebSocket] ✅ Message added!');
+                } else {
+                    console.error('[WebSocket] ❌ chat_messages element not found!');
                 }
             } 
             else if (data.type === 'user_status') {
                 console.log('[STATUS] User', data.username, 'is now', data.status);
                 
+                {% if other_user %}
                 if (isDM && data.user_id === otherUserId) {
                     updateOnlineIndicator(data.status);
                 }
+                {% endif %}
             }
         } catch (error) {
-            console.error('[WebSocket] Error:', error);
+            console.error('[WebSocket] ❌ Error parsing message:', error);
         }
     };
 
     chatSocket.onclose = function(e) {
-        console.error('[WebSocket] Disconnected');
+        console.error('[WebSocket] 🔌 Disconnected. Code:', e.code, 'Reason:', e.reason);
+        
+        // Show reconnection message
+        if (e.code !== 1000) {
+            console.log('[WebSocket] ⚠️ Abnormal closure, attempting reconnect...');
+            // Could add auto-reconnect logic here
+        }
     };
 
     chatSocket.onerror = function(e) {
-        console.error('[WebSocket] Error occurred');
+        console.error('[WebSocket] ❌ Error occurred:', e);
     };
 
     function updateOnlineIndicator(status) {
@@ -380,6 +403,7 @@
         }
     }
 
+    // Form submission
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('chat-message-input');
     
@@ -389,22 +413,45 @@
             
             const message = messageInput.value.trim();
             
-            if (message) {
+            if (!message) {
+                console.log('[Form] ⚠️ Empty message, not sending');
+                return false;
+            }
+            
+            console.log('[Form] 📤 Sending message:', message);
+            
+            // Check if socket is open
+            if (chatSocket.readyState === WebSocket.OPEN) {
                 chatSocket.send(JSON.stringify({
                     'message': message
                 }));
                 
                 messageInput.value = '';
+                console.log('[Form] ✅ Message sent!');
+            } else {
+                console.error('[Form] ❌ WebSocket not connected! State:', chatSocket.readyState);
+                alert('Connection lost. Please refresh the page.');
             }
             
             return false;
         };
+    } else {
+        console.error('[Form] ❌ Form or input not found!');
     }
     
+    // Leave chatroom on page unload
     window.addEventListener('beforeunload', function() {
         navigator.sendBeacon('{% url "chatroom-leave" chatroom_name %}');
     });
     
-    console.log('[INIT] Chat initialized');
+    // Auto-scroll to bottom on page load
+    window.addEventListener('load', function() {
+        const container = document.getElementById('chat_container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+    
+    console.log('[INIT] ✅ Chat initialized successfully');
 </script>
 {% endblock %}
