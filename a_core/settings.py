@@ -142,7 +142,7 @@ CHANNEL_LAYERS = {
 }
 
 # Django Allauth Settings
-SITE_ID = 1
+SITE_ID = 2
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 LOGIN_REDIRECT_URL = '/'

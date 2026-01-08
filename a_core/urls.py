@@ -8,18 +8,16 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('', include('a_rtchat.urls')),
-    path('profile/', include('a_users.urls')),
+    path('profile/', include('a_users.urls')), 
     path("__reload__/", include("django_browser_reload.urls")),
 ]
 
-# Serve media files in BOTH development AND production
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-else:
-    # Production - serve media files
+# Serve media files in production
+if not settings.DEBUG:
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', serve, {
             'document_root': settings.MEDIA_ROOT,
         }),
     ]
+else:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
