@@ -7,6 +7,24 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
 from .forms import *
+from django.http import Http404
+
+
+@login_required
+def profile_view(request, username):
+    # Fetch profile owner
+    user = get_object_or_404(User, username=username)
+
+    # Optional: block inactive users
+    if not user.is_active:
+        raise Http404("User not found")
+
+    context = {
+        "profile_user": user,
+        "is_own_profile": request.user == user,
+    }
+
+    return render(request, "users/profile.html", context)
 
 @login_required
 def profile_edit(request):
