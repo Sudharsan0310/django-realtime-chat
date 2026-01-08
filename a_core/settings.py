@@ -4,6 +4,7 @@ Django settings for a_core project.
 
 import os
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,8 +77,7 @@ ASGI_APPLICATION = 'a_core.asgi.application'
 
 # Database configuration
 if os.environ.get('DATABASE_URL'):
-    # Production - Railway PostgreSQL
-    import dj_database_url
+    # Production - PostgreSQL
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
@@ -122,6 +122,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Whitenoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -133,36 +134,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Channel Layers configuration
-REDIS_URL = os.environ.get('REDIS_URL')
-
-if REDIS_URL:
-    # Production - Railway Redis
-    import urllib.parse
-    redis_url = urllib.parse.urlparse(REDIS_URL)
-    
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                "hosts": [(redis_url.hostname, redis_url.port or 6379)],
-                "capacity": 1500,
-                "expiry": 60,
-            },
-        },
-    }
-    print(f"[REDIS] Using Railway Redis: {redis_url.hostname}")
-else:
-    # Local Development - In-Memory
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
-    print("[REDIS] Using InMemory Channel Layer")
+# Channel Layers
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Django Allauth Settings
-SITE_ID = 2
+SITE_ID = 1
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 LOGIN_REDIRECT_URL = '/'
@@ -174,12 +154,11 @@ PROJECT_TITLE = 'Real-Time Chat'
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.railway.app',
+    'https://*.koyeb.app',
 ]
 
-# Security settings for production
+# Security settings
 if not DEBUG:
-    # SECURE_SSL_REDIRECT = True  # DISABLED - Render handles SSL
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
