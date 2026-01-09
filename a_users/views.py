@@ -60,7 +60,7 @@ def profile_edit_view(request):
         form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
         if form.is_valid():
             form.save()
-            return redirect('profile')
+            return redirect('profile', username=request.user.username)
         
     if request.path == reverse('profile-onboarding'):
         onboarding = True
