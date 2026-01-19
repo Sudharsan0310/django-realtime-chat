@@ -570,7 +570,7 @@ I'm actively seeking **Backend Developer / Python Developer / Django Developer**
 
 ### ⭐ If you found this project interesting, please star it!
 
-**Built with ❤️ by [Sudharsan]**
+**Built with ❤️ by Sudharsan**
 
 *Last Updated: January 2025*
 
